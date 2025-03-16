@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -30,16 +30,42 @@ export class UsersService {
     return user;
   }
 
-  async create(createUserDto: CreateUserDto) {
-    // Hash password trước khi lưu
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-    
+  async findByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { email },
+    });
+  }
+
+    async findById(id: number): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id },
+    });
+  }
+
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // Kiểm tra email đã tồn tại chưa
+    const existingUser = await this.findByEmail(createUserDto.email);
+    if (existingUser) {
+      throw new ConflictException('Email is existed');
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
+
+    // Tạo user mới
     const user = this.usersRepository.create({
       ...createUserDto,
-      password: hashedPassword
+      password: hashedPassword,
     });
-    
-    return await this.usersRepository.save(user);
+
+    // Lưu vào database
+    const savedUser = await this.usersRepository.save(user);
+
+    // Loại bỏ password trước khi trả về
+    const { password, ...result } = savedUser;
+    return result as User;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {

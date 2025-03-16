@@ -7,7 +7,7 @@ import { Connection } from 'typeorm';
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private connection: Connection
+    private readonly connection: Connection,
   ) {}
 
   @Get()

@@ -6,11 +6,18 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Cấu hình CORS
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+  
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+    // Thêm global prefix 'api'
+  app.setGlobalPrefix('api');
+  
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe({
